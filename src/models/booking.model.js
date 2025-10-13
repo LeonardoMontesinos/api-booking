@@ -132,8 +132,27 @@ export async function replace(id, body) {
 }
 
 export async function patch(id, body) {
-    return replace(id, body);
+    ensureNoImmutable(body);
+    const db = getDb();
+
+    const allowed = {};
+    for (const k of Object.keys(body)) if (MUTABLE_FIELDS.has(k)) allowed[k] = body[k];
+    if (Object.keys(allowed).length === 0) throw new Error("No hay campos válidos para actualizar");
+
+    const r = await db.collection("bookings").findOneAndUpdate(
+        { _id: id },
+        { $set: allowed },
+        { returnDocument: "after" }
+    );
+
+    // Si Mongo devolvió null pero el update se aplicó (nModified = 1), traemos el documento actualizado manualmente
+    if (!r.value && r.lastErrorObject?.n === 1) {
+        return await db.collection("bookings").findOne({ _id: id });
+    }
+
+    return r.value; // si realmente no existe, devolverá null y el controller dará 404
 }
+
 
 export async function remove(id) {
     const db = getDb();
