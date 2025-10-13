@@ -1,3 +1,4 @@
+//bookingcontroller
 import * as Bookings from "../models/booking.model.js";
 
 export const health = async (req, res) => {
