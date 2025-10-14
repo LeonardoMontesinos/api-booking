@@ -1,20 +1,28 @@
-# Imagen base oficial de Node
-FROM node:18
+# --- Dockerfile ---
+FROM node:18-alpine
 
-# Crear directorio de la app
-WORKDIR /usr/src/app
+# Directorio de trabajo
+WORKDIR /app
 
-# Copiar package.json y package-lock.json primero
+# Copiamos manifests primero para cachear deps
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm install --production
+# Instala dependencias determinísticamente (solo producción)
+# (si tu npm es viejo, puedes usar: RUN npm install --omit=dev)
+RUN npm ci --omit=dev
 
-# Copiar el resto del código
+# Copiamos el resto del código
 COPY . .
 
-# Exponer el puerto (usa el mismo que en app.js o .env, normalmente 3000)
+# Variables útiles
+ENV NODE_ENV=production \
+    PORT=3000
+
+# Usuario no root
+USER node
+
+# Exponer el puerto (informativo)
 EXPOSE 3000
 
-# Comando para ejecutar la aplicación
-CMD [ "node", "app.js" ]
+# Arranque: server.js vive en src/
+CMD ["node", "src/server.js"]
