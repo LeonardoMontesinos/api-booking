@@ -1,0 +1,98 @@
+import swaggerUi from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
+
+const SeatSchema = {
+  type: "object",
+  required: ["seat_row", "seat_number"],
+  properties: {
+    seat_row: { type: "string", example: "A" },
+    seat_number: { type: "integer", example: 10 }
+  }
+};
+
+const UserSchema = {
+  type: "object",
+  required: ["user_id", "name", "email"],
+  properties: {
+    user_id: { type: "string", example: "u-123" },
+    name: { type: "string", example: "Luciana" },
+    email: { type: "string", format: "email", example: "l@x.com" }
+  }
+};
+
+const BookingSchema = {
+  type: "object",
+  required: ["_id", "showtime_id", "movie_id", "status", "price_total", "currency"],
+  properties: {
+    _id: { type: "string", example: "b-001" },
+    showtime_id: { type: "string", example: "s-100" },
+    movie_id: { type: "string", example: "m-100" },
+    cinema_id: { type: "string", example: "c-200" },
+    sala_id: { type: "string", example: "room-7" },
+    sala_number: { type: "integer", example: 7 },
+    seats: { type: "array", items: SeatSchema },
+    user: UserSchema,
+    payment_method: {
+      type: ["string", "null"],
+      enum: ["card", "cash", "yape", "plin", "stripe", null],
+      example: "yape"
+    },
+    source: {
+      type: ["string", "null"],
+      enum: ["web", "mobile", "kiosk", "partner", null],
+      example: "web"
+    },
+    status: {
+      type: "string",
+      enum: ["PENDING", "CONFIRMED", "CANCELLED", "REFUNDED"],
+      example: "CONFIRMED"
+    },
+    price_total: { type: "number", example: 32.5 },
+    currency: { type: "string", example: "PEN" },
+    created_at: { type: ["string", "null"], format: "date-time", example: "2025-10-14T20:30:00.000Z" }
+  }
+};
+
+const ErrorSchema = {
+  type: "object",
+  properties: {
+    error: { type: "string" },
+    detail: { type: "string" }
+  }
+};
+
+export const swaggerSpec = swaggerJSDoc({
+  definition: {
+    openapi: "3.0.3",
+    info: {
+      title: "Bookings API",
+      version: "1.0.0",
+      description: "API para gestión de boletos (bookings)."
+    },
+    servers: [{ url: "http://localhost:3000" }],
+    components: {
+      schemas: {
+        Seat: SeatSchema,
+        User: UserSchema,
+        Booking: BookingSchema,
+        Error: ErrorSchema
+      },
+      parameters: {
+        BookingId: {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+          description: "ID del booking"
+        }
+      }
+    }
+  },
+  // Ajusta el glob según dónde tengas tus rutas anotadas con @openapi:
+  apis: ["./src/routes/**/*.js"]
+});
+
+export function mountSwagger(app) {
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+  app.get("/docs.json", (_req, res) => res.json(swaggerSpec));
+}
