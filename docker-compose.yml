@@ -2,22 +2,10 @@ services:
   booking:
     build: .
     container_name: booking-microservice
-    ports:
-      - "3000:3000"
+    env_file:
+      - .env          # MONGODB_URI, DB_NAME, PORT
     environment:
-      - MONGO_URI=mongodb://mongo:27017/bookingdb
-    depends_on:
-      - mongo
-    restart: unless-stopped
-
-  mongo:
-    image: mongo:7
-    container_name: booking-mongo
+      - NODE_ENV=production
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+      - "${PORT:-8080}:${PORT:-8080}"
     restart: unless-stopped
-
-volumes:
-  mongo-data:
