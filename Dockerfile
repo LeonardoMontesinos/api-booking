@@ -1,28 +1,23 @@
-# --- Dockerfile ---
+# Dockerfile
 FROM node:18-alpine
 
-# Directorio de trabajo
 WORKDIR /app
 
-# Copiamos manifests primero para cachear deps
+# Instalar dependencias (solo producción)
 COPY package*.json ./
-
-# Instala dependencias determinísticamente (solo producción)
-# (si tu npm es viejo, puedes usar: RUN npm install --omit=dev)
 RUN npm ci --omit=dev
 
-# Copiamos el resto del código
+# Copiar código
 COPY . .
 
-# Variables útiles
-ENV NODE_ENV=production \
-    PORT=3000
+# Modo producción
+ENV NODE_ENV=production
 
 # Usuario no root
 USER node
 
-# Exponer el puerto (informativo)
+# Exponer 3000
 EXPOSE 3000
 
-# Arranque: server.js vive en src/
+# Entry point (ajústalo si usas otro archivo)
 CMD ["node", "src/server.js"]
