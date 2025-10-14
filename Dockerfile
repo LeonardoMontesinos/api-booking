@@ -1,23 +1,20 @@
-services:
-  booking:
-    build: .
-    container_name: booking-microservice
-    ports:
-      - "3000:3000"
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/bookingdb
-    depends_on:
-      - mongo
-    restart: unless-stopped
+# Imagen base oficial de Node
+FROM node:18
 
-  mongo:
-    image: mongo:7
-    container_name: booking-mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    restart: unless-stopped
-  
-volumes:
-  mongo-data:
+# Crear directorio de la app
+WORKDIR /usr/src/app
+
+# Copiar package.json y package-lock.json primero
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install --production
+
+# Copiar el resto del código
+COPY . .
+
+# Exponer el puerto (usa el mismo que en app.js o .env, normalmente 3000)
+EXPOSE 3000
+
+# Comando para ejecutar la aplicación
+CMD [ "node", "app.js" ]
