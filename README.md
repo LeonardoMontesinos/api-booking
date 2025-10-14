@@ -1,6 +1,8 @@
 # api-booking
 Cloud 2025/2 - Booking Microservice
 
+Docker Image: leom1509/booking-microservice
+
 ### Booking Microservice – README (Docker Compose & creación de boletos)
 
 Este README explica **cómo levantar el servicio con Docker Compose** usando un archivo `.env`, y **qué estructura JSON** debes enviar para **crear un nuevo boleto** en `POST /bookings`.
