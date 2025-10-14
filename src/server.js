@@ -4,7 +4,7 @@ import { connectMongo } from "./config/mongo.js";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = process.env.DB_NAME || "bookingsdb";
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 if (!MONGODB_URI) {
     console.error("Falta MONGODB_URI en .env");
