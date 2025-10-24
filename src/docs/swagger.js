@@ -1,3 +1,4 @@
+// swagger.js (o donde defines swaggerSpec)
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
 
@@ -33,13 +34,15 @@ const BookingSchema = {
     seats: { type: "array", items: SeatSchema },
     user: UserSchema,
     payment_method: {
-      type: ["string", "null"],
-      enum: ["card", "cash", "yape", "plin", "stripe", null],
+      type: "string",
+      nullable: true,
+      enum: ["card", "cash", "yape", "plin", "stripe"],
       example: "yape"
     },
     source: {
-      type: ["string", "null"],
-      enum: ["web", "mobile", "kiosk", "partner", null],
+      type: "string",
+      nullable: true,
+      enum: ["web", "mobile", "kiosk", "partner"],
       example: "web"
     },
     status: {
@@ -49,7 +52,7 @@ const BookingSchema = {
     },
     price_total: { type: "number", example: 32.5 },
     currency: { type: "string", example: "PEN" },
-    created_at: { type: ["string", "null"], format: "date-time", example: "2025-10-14T20:30:00.000Z" }
+    created_at: { type: "string", format: "date-time", nullable: true, example: "2025-10-14T20:30:00.000Z" }
   }
 };
 
@@ -57,7 +60,8 @@ const ErrorSchema = {
   type: "object",
   properties: {
     error: { type: "string" },
-    detail: { type: "string" }
+    detail: { type: "string" },
+    key: { type: "object" }
   }
 };
 
@@ -70,6 +74,10 @@ export const swaggerSpec = swaggerJSDoc({
       description: "API para gestión de boletos (bookings)."
     },
     servers: [{ url: "http://localhost:3000" }],
+    tags: [
+      { name: "System" },
+      { name: "Bookings" }
+    ],
     components: {
       schemas: {
         Seat: SeatSchema,
@@ -88,7 +96,7 @@ export const swaggerSpec = swaggerJSDoc({
       }
     }
   },
-  // Ajusta el glob según dónde tengas tus rutas anotadas con @openapi:
+  // Ajusta según tu estructura
   apis: ["./src/routes/**/*.js"]
 });
 
