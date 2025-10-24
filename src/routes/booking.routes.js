@@ -3,6 +3,7 @@ import * as ctrl from "../controller/booking.controller.js";
 
 const router = Router();
 
+
 /**
  * @swagger
  * /health:
