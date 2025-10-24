@@ -15,6 +15,32 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// añade en app.js (además de lo anterior o en vez de rapidoc)
+const swaggerUiDist = path.dirname(require.resolve("swagger-ui-dist"));
+const swaggerInitJs = path.join(process.cwd(), "swagger-init.js");
+
+// 1) archivos estáticos del UI (solo 'self')
+app.use("/swagger-ui", express.static(swaggerUiDist));
+
+// 2) init SIN inline (crear swagger-init.js en tu proyecto)
+app.get("/swagger", (_req, res) => {
+  res.type("html").send(`<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="/swagger-ui/swagger-ui.css"/>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/swagger-ui/swagger-ui-bundle.js"></script>
+  <script src="/swagger-ui/swagger-ui-standalone-preset.js"></script>
+  <script src="/swagger-init.js"></script>
+</body>
+</html>`);
+});
+
+// 3) swagger-init.js (archivo, no inline):
+// window.onload = () => { SwaggerUIBundle({ url: '/docs.json', dom_id: '#swagger-ui' }) }
+
 // Helmet por defecto: permite "script-src 'self'", que es justo lo que usaremos en /docs
 app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
