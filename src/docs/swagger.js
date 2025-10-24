@@ -1,14 +1,20 @@
-// swagger.js (o donde defines swaggerSpec)
+// docs/swagger.js
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ---- Schemas programáticos (reusables) ----
 const SeatSchema = {
   type: "object",
   required: ["seat_row", "seat_number"],
   properties: {
     seat_row: { type: "string", example: "A" },
-    seat_number: { type: "integer", example: 10 }
-  }
+    seat_number: { type: "integer", example: 10 },
+  },
 };
 
 const UserSchema = {
@@ -17,8 +23,8 @@ const UserSchema = {
   properties: {
     user_id: { type: "string", example: "u-123" },
     name: { type: "string", example: "Luciana" },
-    email: { type: "string", format: "email", example: "l@x.com" }
-  }
+    email: { type: "string", format: "email", example: "l@x.com" },
+  },
 };
 
 const BookingSchema = {
@@ -37,23 +43,23 @@ const BookingSchema = {
       type: "string",
       nullable: true,
       enum: ["card", "cash", "yape", "plin", "stripe"],
-      example: "yape"
+      example: "yape",
     },
     source: {
       type: "string",
       nullable: true,
       enum: ["web", "mobile", "kiosk", "partner"],
-      example: "web"
+      example: "web",
     },
     status: {
       type: "string",
       enum: ["PENDING", "CONFIRMED", "CANCELLED", "REFUNDED"],
-      example: "CONFIRMED"
+      example: "CONFIRMED",
     },
     price_total: { type: "number", example: 32.5 },
     currency: { type: "string", example: "PEN" },
-    created_at: { type: "string", format: "date-time", nullable: true, example: "2025-10-14T20:30:00.000Z" }
-  }
+    created_at: { type: "string", format: "date-time", nullable: true, example: "2025-10-14T20:30:00.000Z" },
+  },
 };
 
 const ErrorSchema = {
@@ -61,46 +67,51 @@ const ErrorSchema = {
   properties: {
     error: { type: "string" },
     detail: { type: "string" },
-    key: { type: "object" }
-  }
+    key: { type: "object" },
+  },
 };
+
+// Globs ABSOLUTOS (cubren src/ y rutas relativas al archivo)
+const apiFiles = [
+  path.join(process.cwd(), "src/routes/**/*.js"),
+  path.join(__dirname, "../routes/**/*.js"),
+  path.join(__dirname, "../../src/routes/**/*.js"),
+];
 
 export const swaggerSpec = swaggerJSDoc({
   definition: {
     openapi: "3.0.3",
-    info: {
-      title: "Bookings API",
-      version: "1.0.0",
-      description: "API para gestión de boletos (bookings)."
-    },
+    info: { title: "Bookings API", version: "1.0.0", description: "API para gestión de boletos (bookings)." },
     servers: [{ url: "http://localhost:3000" }],
-    tags: [
-      { name: "System" },
-      { name: "Bookings" }
-    ],
+    tags: [{ name: "System" }, { name: "Bookings" }],
     components: {
-      schemas: {
-        Seat: SeatSchema,
-        User: UserSchema,
-        Booking: BookingSchema,
-        Error: ErrorSchema
-      },
+      schemas: { Seat: SeatSchema, User: UserSchema, Booking: BookingSchema, Error: ErrorSchema },
       parameters: {
         BookingId: {
           name: "id",
           in: "path",
           required: true,
           schema: { type: "string" },
-          description: "ID del booking"
-        }
-      }
-    }
+          description: "ID del booking",
+        },
+      },
+    },
   },
-  // Ajusta según tu estructura
-  apis: ["./src/routes/**/*.js"]
+  apis: apiFiles,
+  failOnErrors: true,
 });
 
 export function mountSwagger(app) {
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+  // JSON primero
   app.get("/docs.json", (_req, res) => res.json(swaggerSpec));
+
+  // UI por URL (más robusto)
+  app.use(
+    "/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(null, {
+      explorer: true,
+      swaggerOptions: { url: "/docs.json" },
+    })
+  );
 }
