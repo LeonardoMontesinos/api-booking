@@ -1,11 +1,8 @@
-// src/models/booking.model.js
+// models/booking.model.js
 import { getDb, hasMaterialized } from "../config/mongo.js";
 
-/** =========================
- *  Constantes & utilidades
- *  ========================= */
+/** ---------- Constantes & utilidades ---------- */
 export const ALLOWED_STATUS = new Set(["PENDING", "CONFIRMED", "CANCELLED", "REFUNDED"]);
-const MATERIALIZED_COLLECTION = "bookings_mat";
 
 const CREATE_FIELDS = [
   "_id","showtime_id","movie_id","cinema_id","sala_id","sala_number",
@@ -50,14 +47,7 @@ function toDateOrISO(v) {
   return isNaN(d) ? undefined : d.toISOString();
 }
 
-function isBlank(v) {
-  const s = String(v ?? "").trim().toLowerCase();
-  return s === "" || s === "null" || s === "undefined";
-}
-
-/** =========================
- *  Normalización de escrituras
- *  ========================= */
+/** Normaliza campos en escritura (create) */
 function normalizeOnCreate(doc) {
   // ids como string
   if (doc._id != null) doc._id = String(doc._id);
@@ -86,9 +76,10 @@ function normalizeOnCreate(doc) {
   return doc;
 }
 
+/** Normaliza parcial para $set (patch/replace) */
 function normalizeForPatch(allowed) {
   const out = { ...allowed };
-  if (out.sala_number != null) out.sala_number = Number(out.sala_number);
+  if (out.sala_number != null) out.sala_number = Number(out.sala_number); // por si acaso
   if (out.price_total != null) out.price_total = Number(out.price_total);
 
   if (out.user && typeof out.user === "object") {
@@ -105,27 +96,25 @@ function normalizeForPatch(allowed) {
   return out;
 }
 
-/** =========================
- *  Filtros / sort / paginación
- *  ========================= */
+/** Filtros / sort / paginación */
 function buildFilter(q) {
   const f = {};
-  if (!isBlank(q.id) || !isBlank(q._id) || !isBlank(q.booking_id)) f._id = q.id || q._id || q.booking_id;
-  if (!isBlank(q.movie_id))    f.movie_id = q.movie_id;
-  if (!isBlank(q.cinema_id))   f.cinema_id = q.cinema_id;
-  if (!isBlank(q.showtime_id)) f.showtime_id = q.showtime_id;
-  if (!isBlank(q.user_id))     f["user.user_id"] = q.user_id;
-  if (!isBlank(q.status))          f.status = q.status;
-  if (!isBlank(q.source))          f.source = q.source;
-  if (!isBlank(q.payment_method))  f.payment_method = q.payment_method;
+  if (q.id || q._id || q.booking_id) f._id = q.id || q._id || q.booking_id;
+  if (q.movie_id)    f.movie_id = q.movie_id;
+  if (q.cinema_id)   f.cinema_id = q.cinema_id;
+  if (q.showtime_id) f.showtime_id = q.showtime_id;
+  if (q.user_id)     f["user.user_id"] = q.user_id;
+  if (q.status)          f.status = q.status;
+  if (q.source)          f.source = q.source;
+  if (q.payment_method)  f.payment_method = q.payment_method;
 
-  if (!isBlank(q.email)) {
+  if (q.email) {
     const e = String(q.email).toLowerCase();
     f.$or = [{ email_norm: e }, { "user.email": q.email }];
   }
 
-  const from = !isBlank(q.date_from) ? new Date(q.date_from) : null;
-  const to   = !isBlank(q.date_to)   ? new Date(q.date_to)   : null;
+  const from = q.date_from ? new Date(q.date_from) : null;
+  const to   = q.date_to   ? new Date(q.date_to)   : null;
   if (from || to) {
     f.created_at_dt = {};
     if (from) f.created_at_dt.$gte = from;
@@ -141,203 +130,131 @@ function buildSort(sort) {
   return s;
 }
 
-function parseLimit(v, def = 50, max = 200) {
-  const n = parseInt(v ?? def, 10);
-  if (Number.isNaN(n) || n < 1) return def;
-  return Math.min(n, max);
-}
-function parsePage(v, def = 1) {
-  const n = parseInt(v ?? def, 10);
-  if (Number.isNaN(n) || n < 1) return def;
-  return n;
-}
+/** ---------- API del modelo ---------- */
 
-/** =========================
- *  Etapas comunes de agregación
- *  ========================= */
-function aggNormalizeFieldsStage() {
-  return {
-    $addFields: {
-      // Normaliza created_at -> Date (acepta Date, epoch o string ISO)
-      created_at_dt: {
-        $cond: [
-          { $eq: [{ $type: "$created_at" }, "date"] },
-          "$created_at",
-          {
-            $cond: [
-              { $in: [{ $type: "$created_at" }, ["int", "long", "double", "decimal"]] },
-              { $toDate: "$created_at" },
-              {
-                $dateFromString: {
-                  dateString: { $toString: "$created_at" },
-                  onError: null,
-                  onNull: null
-                }
-              }
-            ]
-          }
-        ]
-      },
-      // email normalizado
-      email_norm: { $toLower: { $ifNull: ["$user.email", ""] } }
-    }
-  };
-}
-
-/** =========================
- *  Materializador
- *  ========================= */
-function matAddFieldsStage() {
-  return {
-    $addFields: {
-      // Reusa la misma lógica que en list()
-      created_at_dt: {
-        $cond: [
-          { $eq: [{ $type: "$created_at" }, "date"] },
-          "$created_at",
-          {
-            $cond: [
-              { $in: [{ $type: "$created_at" }, ["int", "long", "double", "decimal"]] },
-              { $toDate: "$created_at" },
-              {
-                $dateFromString: {
-                  dateString: { $toString: "$created_at" },
-                  onError: null,
-                  onNull: null
-                }
-              }
-            ]
-          }
-        ]
-      },
-      email_norm: { $toLower: { $ifNull: ["$user.email", ""] } },
-      seat_count: { $size: { $ifNull: ["$seats", []] } },
-      created_at_pe: {
-        $dateFromString: {
-          dateString: {
-            $dateToString: {
-              date: { $ifNull: ["$created_at_dt", new Date(0)] },
-              format: "%Y-%m-%dT%H:%M:%S.%LZ"
-            }
-          },
-          timezone: "America/Lima",
-          onError: null,
-          onNull: null
-        }
-      }
-    }
-  };
-}
-
-function matMergeStage() {
-  return {
-    $merge: {
-      into: MATERIALIZED_COLLECTION,
-      on: "_id",
-      whenMatched: "replace",
-      whenNotMatched: "insert"
-    }
-  };
-}
-
-export async function ensureMatIndexes() {
-  const db = getDb();
-  const col = db.collection(MATERIALIZED_COLLECTION);
-  await col.createIndex({ _id: 1 }, { unique: true });
-  await col.createIndex({ created_at_dt: -1 });
-  await col.createIndex({ email_norm: 1 });
-  await col.createIndex({ "user.user_id": 1 });
-  await col.createIndex({ movie_id: 1 });
-  await col.createIndex({ cinema_id: 1 });
-  await col.createIndex({ showtime_id: 1 });
-  await col.createIndex({ status: 1 });
-  await col.createIndex({ payment_method: 1 });
-  await col.createIndex({ source: 1 });
-}
-
-export async function refreshAll({ rebuild = false } = {}) {
-  const db = getDb();
-
-  if (rebuild) {
-    const exists = (await db.listCollections({ name: MATERIALIZED_COLLECTION }).toArray()).length > 0;
-    if (exists) await db.collection(MATERIALIZED_COLLECTION).drop();
-  }
-
-  await db.collection("bookings").aggregate([
-    matAddFieldsStage(),
-    matMergeStage()
-  ]).toArray();
-
-  await ensureMatIndexes();
-}
-
-// Interno: materializa un documento por id (soporta _id string/ObjectId)
-async function refreshOne(id) {
-  const db = getDb();
-  const idStr = String(id);
-  const matchStage = {
-    $match: { $expr: { $eq: [{ $toString: "$_id" }, idStr] } }
-  };
-
-  await db.collection("bookings").aggregate([
-    matchStage,
-    matAddFieldsStage(),
-    matMergeStage()
-  ]).toArray();
-}
-
-/** =========================
- *  API del modelo
- *  ========================= */
 export async function list(query) {
   const db = getDb();
   const collation = { locale: "es", strength: 1 };
 
   const filter = buildFilter(query);
   const sort = buildSort(query.sort);
-  const limit = parseLimit(query.limit);
-  const page  = parsePage(query.page);
+  const limit = Math.min(parseInt(query.limit || 50, 10), 200);
+  const page  = Math.max(parseInt(query.page || 1, 10), 1);
   const skip  = (page - 1) * limit;
 
   if (hasMaterialized()) {
-    const cur = db.collection(MATERIALIZED_COLLECTION)
-      .find(filter, { collation })
-      .sort(sort).skip(skip).limit(limit);
+    const cur = db.collection("bookings_mat")
+      .find(filter, { collation }).sort(sort).skip(skip).limit(limit);
     const data = await cur.toArray();
-
-    // permite respuesta "lisa" si ?flat=1/true
-    if (String(query.flat).toLowerCase() === "true" || String(query.flat) === "1") {
-      return data;
-    }
     return { page, limit, count: data.length, data };
   }
 
   const pipe = [
-    aggNormalizeFieldsStage(),
+    {
+      $addFields: {
+        created_at_dt: {
+          $cond: [
+            { $eq: [ { $type: "$created_at" }, "date" ] },
+            "$created_at",
+            { $dateFromString: { dateString: "$created_at" } }
+          ]
+        },
+        email_norm: { $toLower: "$user.email" }
+      }
+    },
     { $match: filter },
     { $sort: sort },
     { $skip: skip },
     { $limit: limit }
   ];
   const data = await db.collection("bookings").aggregate(pipe, { collation }).toArray();
-
-  if (String(query.flat).toLowerCase() === "true" || String(query.flat) === "1") {
-    return data;
-  }
   return { page, limit, count: data.length, data };
 }
 
 export async function getById(id) {
   const db = getDb();
-  // Búsqueda tolerante a _id string / ObjectId
-  const idStr = String(id);
-  return db.collection("bookings").findOne({
-    $expr: { $eq: [{ $toString: "$_id" }, idStr] }
-  });
+  return db.collection("bookings").findOne({ _id: id });
 }
 
 export async function create(body) {
   const db = getDb();
   const doc = normalizeOnCreate(pick(body, CREATE_FIELDS));
   await db.collection("bookings").insertOne(doc);
-  if (hasMate
+  if (hasMaterialized()) await refreshOne(doc._id);
+  return doc;
+}
+
+/**
+ * replace/patch: solo modifica campos MUTABLES.
+ * Usa findOneAndUpdate con returnDocument:'after' y includeResultMetadata:true.
+ * Si por alguna razón value viene null pero updatedExisting=true, hace un GET de respaldo
+ * para evitar el 404 aunque se haya escrito.
+ */
+export async function replace(id, body) {
+  ensureNoImmutable(body);
+
+  const allowed = {};
+  for (const k of Object.keys(body)) if (MUTABLE_FIELDS.has(k)) allowed[k] = body[k];
+  const $set = normalizeForPatch(allowed);
+
+  const db = getDb();
+  const opts = {
+    returnDocument: "after",
+    upsert: false,
+    includeResultMetadata: true, // <- importante para poder inspeccionar updatedExisting
+  };
+
+  const r = await db.collection("bookings").findOneAndUpdate({ _id: id }, { $set }, opts);
+
+  let doc = r.value || null;
+  // Fallback: si actualizó pero r.value es null (driver/metadatos), leemos el doc
+  if (!doc && r?.lastErrorObject?.updatedExisting) {
+    doc = await db.collection("bookings").findOne({ _id: id });
+  }
+
+  if (!doc) return null;
+
+  if (hasMaterialized()) await refreshOne(id);
+  return doc;
+}
+
+export async function patch(id, body) {
+  return replace(id, body);
+}
+
+export async function remove(id) {
+  const db = getDb();
+  const r = await db.collection("bookings").deleteOne({ _id: id });
+  if (hasMaterialized()) await db.collection("bookings_mat").deleteOne({ _id: id });
+  return r.deletedCount === 1;
+}
+
+/** ---------- Soporte a materialización ---------- */
+async function refreshOne(id) {
+  const db = getDb();
+  const pipe = [
+    { $match: { _id: id } },
+    {
+      $addFields: {
+        created_at_dt: {
+          $cond: [
+            { $eq: [ { $type: "$created_at" }, "date" ] },
+            "$created_at",
+            { $dateFromString: { dateString: "$created_at" } }
+          ]
+        },
+        created_at_pe: {
+          $cond: [
+            { $eq: [ { $type: "$created_at" }, "date" ] },
+            "$created_at",
+            { $dateFromString: { dateString: "$created_at", timezone: "America/Lima" } }
+          ]
+        },
+        seat_count: { $size: { $ifNull: ["$seats", []] } },
+        email_norm: { $toLower: "$user.email" }
+      }
+    },
+    { $merge: { into: "bookings_mat", on: "_id", whenMatched: "replace", whenNotMatched: "insert" } }
+  ];
+  await db.collection("bookings").aggregate(pipe).toArray();
+}
