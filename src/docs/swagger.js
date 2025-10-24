@@ -73,16 +73,15 @@ const ErrorSchema = {
 
 // Globs ABSOLUTOS: aseguran que swagger-jsdoc encuentre tus rutas en cualquier entorno
 const apiFiles = [
-  path.join(process.cwd(), "src/routes/**/*.js"),
   path.join(__dirname, "../routes/**/*.js"),
-  path.join(__dirname, "../../src/routes/**/*.js"),
+  path.join(process.cwd(), "src/routes/**/*.js"),
 ];
 
 export const swaggerSpec = swaggerJSDoc({
   definition: {
     openapi: "3.0.3",
     info: { title: "Bookings API", version: "1.0.0", description: "API para gestión de boletos (bookings)." },
-    servers: [{ url: "http://localhost:3000" }],
+    servers: [{ url: process.env.PUBLIC_BASE_URL || "http://localhost:3000" }],
     tags: [{ name: "System" }, { name: "Bookings" }],
     components: {
       schemas: { Seat: SeatSchema, User: UserSchema, Booking: BookingSchema, Error: ErrorSchema },
@@ -106,16 +105,11 @@ console.log("[swagger] apis globs:", apiFiles);
 console.log("[swagger] paths encontrados:", Object.keys(swaggerSpec.paths || {}));
 
 export function mountSwagger(app) {
-  // JSON (lo consume el UI)
-  app.get("/docs.json", (_req, res) => res.json(swaggerSpec));
+  // Servir el JSON de la especificación OpenAPI
+  app.get("/docs.json", (_req, res) => {
+    return res.json(swaggerSpec);
+  });
 
-  // UI que carga la spec por URL (más robusto)
-  app.use(
-    "/docs",
-    swaggerUi.serve,
-    swaggerUi.setup(null, {
-      explorer: true,
-      swaggerOptions: { url: "/docs.json" },
-    })
-  );
+  // Configurar Swagger UI
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
