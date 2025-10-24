@@ -1,3 +1,4 @@
+// app.js
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -6,36 +7,40 @@ import { mountSwagger } from "./docs/swagger.js";
 
 const app = express();
 
-// Helmet global
-app.use(helmet());
+// 1) Helmet sin CSP global (muy importante)
+app.use(helmet({ contentSecurityPolicy: false }));
+
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("combined"));
 
-// CSP específico para /docs: permite inline scripts y estilos SOLO ahí
-app.use("/docs", (req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "img-src 'self' data: https:",
-      "style-src 'self' https: 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "frame-ancestors 'self'",
-      "upgrade-insecure-requests",
-    ].join("; ")
-  );
-  next();
+// 2) CSP SOLO para /docs (permite inline scripts/styles)
+const docsCSP = helmet.contentSecurityPolicy({
+  useDefaults: true,
+  directives: {
+    "default-src": ["'self'"],
+    "img-src": ["'self'", "data:", "https:"],
+    "style-src": ["'self'", "https:", "'unsafe-inline'"],
+    "script-src": ["'self'", "'unsafe-inline'"],
+    // opcional, por si tu proxy añade esta directiva:
+    "script-src-attr": ["'unsafe-inline'"],
+    "object-src": ["'none'"],
+    "base-uri": ["'self'"],
+    "frame-ancestors": ["'self'"],
+    // la directiva siguiente puede omitirse si tu entorno no la necesita
+    "upgrade-insecure-requests": [],
+  },
 });
 
-// Swagger antes del 404
+// Aplícalo antes de montar Swagger
+app.use("/docs", docsCSP);
+
+// 3) Swagger (carga por URL, más robusto)
 mountSwagger(app);
 
-// Rutas del API
+// 4) Rutas de negocio
 app.use(routes);
 
-// 404
+// 5) 404
 app.use((req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
 
 export default app;
