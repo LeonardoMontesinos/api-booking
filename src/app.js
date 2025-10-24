@@ -6,26 +6,33 @@ import { mountSwagger } from "./docs/swagger.js";
 
 const app = express();
 
-// Helmet global (sin CSP explícito)
+// Helmet global
 app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("combined"));
 
-// CSP permisivo SOLO para /docs (si tu proxy añade CSP, esto ayuda igual)
-const docsCSP = helmet.contentSecurityPolicy({
-  useDefaults: true,
-  directives: {
-    "script-src": ["'self'", "'unsafe-inline'"],
-    "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "https:"],
-  },
+// CSP específico para /docs: permite inline scripts y estilos SOLO ahí
+app.use("/docs", (req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "img-src 'self' data: https:",
+      "style-src 'self' https: 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+      "upgrade-insecure-requests",
+    ].join("; ")
+  );
+  next();
 });
-app.use("/docs", docsCSP);
 
 // Swagger antes del 404
 mountSwagger(app);
 
-// Rutas de negocio
+// Rutas del API
 app.use(routes);
 
 // 404
