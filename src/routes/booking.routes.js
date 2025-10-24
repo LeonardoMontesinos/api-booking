@@ -60,12 +60,14 @@ const router = Router();
  *         user:
  *           $ref: '#/components/schemas/User'
  *         payment_method:
- *           type: [string, "null"]
- *           enum: [card, cash, yape, plin, stripe, null]
+ *           type: string
+ *           nullable: true
+ *           enum: [card, cash, yape, plin, stripe]
  *           example: "yape"
  *         source:
- *           type: [string, "null"]
- *           enum: [web, mobile, kiosk, partner, null]
+ *           type: string
+ *           nullable: true
+ *           enum: [web, mobile, kiosk, partner]
  *           example: "web"
  *         status:
  *           type: string
@@ -78,8 +80,9 @@ const router = Router();
  *           type: string
  *           example: "PEN"
  *         created_at:
- *           type: ["string", "null"]
+ *           type: string
  *           format: date-time
+ *           nullable: true
  *           example: "2025-10-14T20:30:00.000Z"
  *     Error:
  *       type: object
@@ -135,10 +138,17 @@ router.get("/health", ctrl.health);
  *     parameters:
  *       - in: query
  *         name: limit
- *         schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 200
+ *           default: 50
  *       - in: query
  *         name: page
- *         schema: { type: integer, minimum: 1, default: 1 }
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
  *       - in: query
  *         name: status
  *         schema:
@@ -146,16 +156,20 @@ router.get("/health", ctrl.health);
  *           enum: [PENDING, CONFIRMED, CANCELLED, REFUNDED]
  *       - in: query
  *         name: movie_id
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: cinema_id
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: showtime_id
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: user_id
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: payment_method
  *         schema:
@@ -168,16 +182,24 @@ router.get("/health", ctrl.health);
  *           enum: [web, mobile, kiosk, partner]
  *       - in: query
  *         name: email
- *         schema: { type: string, format: email }
+ *         schema:
+ *           type: string
+ *           format: email
  *       - in: query
  *         name: date_from
- *         schema: { type: string, format: date }
+ *         schema:
+ *           type: string
+ *           format: date
  *       - in: query
  *         name: date_to
- *         schema: { type: string, format: date }
+ *         schema:
+ *           type: string
+ *           format: date
  *       - in: query
  *         name: sort
- *         schema: { type: string, example: '-created_at_dt' }
+ *         schema:
+ *           type: string
+ *           example: "-created_at_dt"
  *     responses:
  *       200:
  *         description: Lista paginada
@@ -186,9 +208,15 @@ router.get("/health", ctrl.health);
  *             schema:
  *               type: object
  *               properties:
- *                 page: { type: integer, example: 1 }
- *                 limit: { type: integer, example: 50 }
- *                 count: { type: integer, example: 2 }
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 50
+ *                 count:
+ *                   type: integer
+ *                   example: 2
  *                 data:
  *                   type: array
  *                   items:
@@ -218,9 +246,14 @@ router.get("/bookings", ctrl.list);
  *                 sala_id: "room-7"
  *                 sala_number: 7
  *                 seats:
- *                   - { seat_row: "A", seat_number: 10 }
- *                   - { seat_row: "A", seat_number: 11 }
- *                 user: { user_id: "u-123", name: "Luciana", email: "l@x.com" }
+ *                   - seat_row: "A"
+ *                     seat_number: 10
+ *                   - seat_row: "A"
+ *                     seat_number: 11
+ *                 user:
+ *                   user_id: "u-123"
+ *                   name: "Luciana"
+ *                   email: "l@x.com"
  *                 payment_method: "yape"
  *                 source: "web"
  *                 status: "CONFIRMED"
@@ -282,7 +315,8 @@ router.get("/bookings/:id", ctrl.get);
  *         application/json:
  *           schema:
  *             type: object
- *             description: Campos mutables: seats, user, payment_method, source, status, price_total, currency
+ *             description: >
+ *               Campos mutables: seats, user, payment_method, source, status, price_total, currency.
  *     responses:
  *       200:
  *         description: Actualizado
@@ -309,7 +343,8 @@ router.patch("/bookings/:id", ctrl.patch);
  *         application/json:
  *           schema:
  *             type: object
- *             description: Campos mutables: seats, user, payment_method, source, status, price_total, currency
+ *             description: >
+ *               Campos mutables: seats, user, payment_method, source, status, price_total, currency.
  *     responses:
  *       200:
  *         description: Reemplazado
