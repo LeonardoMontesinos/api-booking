@@ -7,10 +7,15 @@ const DB_NAME = process.env.DB_NAME || "bookingsdb";
 const PORT = process.env.PORT || 3000;
 
 if (!MONGODB_URI) {
-    console.error("Falta MONGODB_URI en .env");
-    process.exit(1);
+  console.error("Falta MONGODB_URI en .env");
+  process.exit(1);
 }
 
 const { db } = await connectMongo(MONGODB_URI, DB_NAME);
 app.locals.db = db;
-app.listen(PORT, () => console.log(`API bookings escuchando en :${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`API bookings escuchando en :${PORT}`);
+  console.log(`Swagger UI:  http://localhost:${PORT}/docs`);
+  console.log(`OpenAPI JSON: http://localhost:${PORT}/docs.json`);
+});
