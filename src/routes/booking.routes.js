@@ -4,107 +4,7 @@ import * as ctrl from "../controller/booking.controller.js";
 const router = Router();
 
 /**
- * @openapi
- * components:
- *   schemas:
- *     Seat:
- *       type: object
- *       required: [seat_row, seat_number]
- *       properties:
- *         seat_row:
- *           type: string
- *           example: "A"
- *         seat_number:
- *           type: integer
- *           example: 10
- *     User:
- *       type: object
- *       required: [user_id, name, email]
- *       properties:
- *         user_id:
- *           type: string
- *           example: "u-123"
- *         name:
- *           type: string
- *           example: "Luciana"
- *         email:
- *           type: string
- *           format: email
- *           example: "l@x.com"
- *     Booking:
- *       type: object
- *       required: ["_id","showtime_id","movie_id","status","price_total","currency"]
- *       properties:
- *         _id:
- *           type: string
- *           example: "b-001"
- *         showtime_id:
- *           type: string
- *           example: "s-100"
- *         movie_id:
- *           type: string
- *           example: "m-100"
- *         cinema_id:
- *           type: string
- *           example: "c-200"
- *         sala_id:
- *           type: string
- *           example: "room-7"
- *         sala_number:
- *           type: integer
- *           example: 7
- *         seats:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Seat'
- *         user:
- *           $ref: '#/components/schemas/User'
- *         payment_method:
- *           type: string
- *           nullable: true
- *           enum: [card, cash, yape, plin, stripe]
- *           example: "yape"
- *         source:
- *           type: string
- *           nullable: true
- *           enum: [web, mobile, kiosk, partner]
- *           example: "web"
- *         status:
- *           type: string
- *           enum: [PENDING, CONFIRMED, CANCELLED, REFUNDED]
- *           example: "CONFIRMED"
- *         price_total:
- *           type: number
- *           example: 32.5
- *         currency:
- *           type: string
- *           example: "PEN"
- *         created_at:
- *           type: string
- *           format: date-time
- *           nullable: true
- *           example: "2025-10-14T20:30:00.000Z"
- *     Error:
- *       type: object
- *       properties:
- *         error:
- *           type: string
- *         detail:
- *           type: string
- *         key:
- *           type: object
- *   parameters:
- *     BookingId:
- *       name: id
- *       in: path
- *       required: true
- *       schema:
- *         type: string
- *       description: ID del booking
- */
-
-/**
- * @openapi
+ * @swagger
  * /health:
  *   get:
  *     summary: Healthcheck de la API y conexión a MongoDB
@@ -130,7 +30,7 @@ const router = Router();
 router.get("/health", ctrl.health);
 
 /**
- * @openapi
+ * @swagger
  * /bookings:
  *   get:
  *     summary: Listar bookings
@@ -138,17 +38,10 @@ router.get("/health", ctrl.health);
  *     parameters:
  *       - in: query
  *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 200
- *           default: 50
+ *         schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
+ *         schema: { type: integer, minimum: 1, default: 1 }
  *       - in: query
  *         name: status
  *         schema:
@@ -156,20 +49,16 @@ router.get("/health", ctrl.health);
  *           enum: [PENDING, CONFIRMED, CANCELLED, REFUNDED]
  *       - in: query
  *         name: movie_id
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *       - in: query
  *         name: cinema_id
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *       - in: query
  *         name: showtime_id
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *       - in: query
  *         name: user_id
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *       - in: query
  *         name: payment_method
  *         schema:
@@ -182,24 +71,16 @@ router.get("/health", ctrl.health);
  *           enum: [web, mobile, kiosk, partner]
  *       - in: query
  *         name: email
- *         schema:
- *           type: string
- *           format: email
+ *         schema: { type: string, format: email }
  *       - in: query
  *         name: date_from
- *         schema:
- *           type: string
- *           format: date
+ *         schema: { type: string, format: date }
  *       - in: query
  *         name: date_to
- *         schema:
- *           type: string
- *           format: date
+ *         schema: { type: string, format: date }
  *       - in: query
  *         name: sort
- *         schema:
- *           type: string
- *           example: "-created_at_dt"
+ *         schema: { type: string, example: "-created_at_dt" }
  *     responses:
  *       200:
  *         description: Lista paginada
@@ -208,15 +89,9 @@ router.get("/health", ctrl.health);
  *             schema:
  *               type: object
  *               properties:
- *                 page:
- *                   type: integer
- *                   example: 1
- *                 limit:
- *                   type: integer
- *                   example: 50
- *                 count:
- *                   type: integer
- *                   example: 2
+ *                 page: { type: integer, example: 1 }
+ *                 limit: { type: integer, example: 50 }
+ *                 count: { type: integer, example: 2 }
  *                 data:
  *                   type: array
  *                   items:
@@ -225,7 +100,7 @@ router.get("/health", ctrl.health);
 router.get("/bookings", ctrl.list);
 
 /**
- * @openapi
+ * @swagger
  * /bookings:
  *   post:
  *     summary: Crear booking
@@ -282,7 +157,7 @@ router.get("/bookings", ctrl.list);
 router.post("/bookings", ctrl.create);
 
 /**
- * @openapi
+ * @swagger
  * /bookings/{id}:
  *   get:
  *     summary: Obtener booking por ID
@@ -302,7 +177,7 @@ router.post("/bookings", ctrl.create);
 router.get("/bookings/:id", ctrl.get);
 
 /**
- * @openapi
+ * @swagger
  * /bookings/{id}:
  *   patch:
  *     summary: Actualizar parcialmente (solo campos mutables)
@@ -330,7 +205,7 @@ router.get("/bookings/:id", ctrl.get);
 router.patch("/bookings/:id", ctrl.patch);
 
 /**
- * @openapi
+ * @swagger
  * /bookings/{id}:
  *   put:
  *     summary: Reemplazo lógico (solo campos mutables)
@@ -358,7 +233,7 @@ router.patch("/bookings/:id", ctrl.patch);
 router.put("/bookings/:id", ctrl.replace);
 
 /**
- * @openapi
+ * @swagger
  * /bookings/{id}:
  *   delete:
  *     summary: Eliminar booking
