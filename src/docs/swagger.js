@@ -7,7 +7,7 @@ import swaggerJSDoc from "swagger-jsdoc";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- Schemas programáticos (reusables) ----
+// --- Schemas (idénticos a los tuyos) ---
 const SeatSchema = {
   type: "object",
   required: ["seat_row", "seat_number"],
@@ -71,7 +71,7 @@ const ErrorSchema = {
   },
 };
 
-// Globs ABSOLUTOS (cubren src/ y rutas relativas al archivo)
+// Globs ABSOLUTOS: aseguran que swagger-jsdoc encuentre tus rutas en cualquier entorno
 const apiFiles = [
   path.join(process.cwd(), "src/routes/**/*.js"),
   path.join(__dirname, "../routes/**/*.js"),
@@ -98,14 +98,18 @@ export const swaggerSpec = swaggerJSDoc({
     },
   },
   apis: apiFiles,
-  failOnErrors: true,
+  failOnErrors: true, // si algo está mal, lo verás en consola
 });
 
+// Logs útiles para confirmar que ya hay paths
+console.log("[swagger] apis globs:", apiFiles);
+console.log("[swagger] paths encontrados:", Object.keys(swaggerSpec.paths || {}));
+
 export function mountSwagger(app) {
-  // JSON primero
+  // JSON (lo consume el UI)
   app.get("/docs.json", (_req, res) => res.json(swaggerSpec));
 
-  // UI por URL (más robusto)
+  // UI que carga la spec por URL (más robusto)
   app.use(
     "/docs",
     swaggerUi.serve,
